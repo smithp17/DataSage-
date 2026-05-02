@@ -1,0 +1,44 @@
+services:
+
+  backend:
+    image: datasage-backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      GROQ_API_KEY:   ${GROQ_API_KEY}
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      DATASET_STORE:  /data/datasets
+      CORS_ORIGIN:    http://localhost
+    volumes:
+      - dataset_data:/data/datasets
+    healthcheck:
+      test:     ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      interval: 20s
+      timeout:  10s
+      retries:  5
+      start_period: 15s
+    networks:
+      - app
+
+  frontend:
+    image: datasage-frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - app
+
+volumes:
+  dataset_data:
+
+networks:
+  app:
+    driver: bridge
